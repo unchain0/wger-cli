@@ -33,12 +33,13 @@ Preconditions:
 When a disposable token exists (never print it):
 
 1. Export `WGER_API_TOKEN` into the environment only.
-2. Choose an exercise id you may edit (or a dedicated test exercise on a private instance). Prefer a private/self-hosted `WGER_BASE_URL` for write tests when possible so public catalog data is untouched.
-3. **Set translation.**  
-   `"$WGER_BIN" --json translation --exercise <id> --lang pt --name "verify-tmp-$(date +%s)" --description "<p>verify-wger-cli temporary</p>" --license-author "verify-wger-cli"`.
-4. Note `action` in the JSON (`created` or `updated`) and the translation id.
+2. Prefer a private/self-hosted `WGER_BASE_URL` so public catalog data is untouched. Choose an exercise id you own or a dedicated test exercise.
+3. **Preflight.** Resolve language id (`"$WGER_BIN" --json list language -q short_name=pt`). List existing rows: `"$WGER_BIN" --json list exercise-translation -q exercise=<id> -q language=<lang_id>`. Pick an exercise+language pair with **no** existing translation (or create a throwaway exercise on the private instance first). Do not update a pre-existing public translation.
+4. **Create only.**  
+   `"$WGER_BIN" --json translation --exercise <id> --lang pt --name "verify-tmp-$(date +%s)" --description "<p>verify-wger-cli temporary</p>" --license-author "verify-wger-cli"`.  
+   Require `action` == `created` and note `translation.id`. If `action` is `updated`, abort without further writes: the preflight was wrong.
 5. **Read back.** `"$WGER_BIN" --json list exercise-translation -q exercise=<id> -q language=<lang_id>` and confirm the name/description.
-6. **Cleanup.** If `action` was `created`, `"$WGER_BIN" delete exercise-translation <translation_id> --yes`. If `updated`, patch the previous name/description back with another `translation` call or `update exercise-translation`. Confirm with list/get.
+6. **Cleanup.** `"$WGER_BIN" delete exercise-translation <translation_id> --yes`. Confirm with get/list that the row is gone.
 7. **Proof.** Save commands and redacted output under `.verify-evidence/<ts>/translations-write.*`.
 
 Without a token, for the write path record:

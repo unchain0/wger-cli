@@ -97,4 +97,9 @@ if stderr.strip():
 
 print(f"mcp-smoke: ok bin={bin_path} tools={len(names)} names={','.join(names)}")
 print(json.dumps({"initialize": init["result"]["serverInfo"], "tools": names}, indent=2))
+print("mcp-smoke: raw-stdout-begin")
+sys.stdout.write(stdout)
+if not stdout.endswith("\n"):
+    sys.stdout.write("\n")
+print("mcp-smoke: raw-stdout-end")
 PY

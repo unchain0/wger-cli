@@ -32,7 +32,7 @@ When `WGER_API_TOKEN` is available (never print it):
 3. **Filter routine.** Pick a routine id the account owns (from `"$WGER_BIN" --json list routine -q limit=5`). Run `"$WGER_BIN" --json logs --routine <id>`. Exit `0`. Every result's `routine` matches or the list is empty.
 4. **Since filter.** Run `"$WGER_BIN" --json logs --since 2020-01-01`. Exit `0`.
 5. **Equivalent list.** Run `"$WGER_BIN" --json list workoutlog -q ordering=-date -q limit=5`. Exit `0`. Shape matches the logs shortcut (same resource).
-6. **No live writes in the default logs proof.** Creating logs is covered under routine-edit / session flows if needed. If you create a throwaway log: POST via `"$WGER_BIN" --json create workoutlog --data @/tmp/wger-verify-scratch/log.json`, note the returned id/UUID, then `"$WGER_BIN" delete workoutlog <id> --yes`, then `"$WGER_BIN" get workoutlog <id>` expects an error. Remove the scratch file in cleanup.
+6. **No live writes in the default logs proof.** Creating logs is covered under routine-edit / session flows if needed. If you create a throwaway log: `export WGER_VERIFY_SCRATCH=/tmp/wger-verify-scratch-$TS-$$; mkdir -p "$WGER_VERIFY_SCRATCH"`, POST via `"$WGER_BIN" --json create workoutlog --data @$WGER_VERIFY_SCRATCH/log.json`, note the returned id/UUID, then `"$WGER_BIN" delete workoutlog <id> --yes`, then `"$WGER_BIN" get workoutlog <id>` expects an error. Run `scripts/cleanup.sh` so only `$WGER_VERIFY_SCRATCH` is removed.
 7. **Proof.** Save command, stdout, stderr, exit code under `.verify-evidence/<ts>/workout-logs.*`. Redact token from any env dumps.
 
 Without a token, record:

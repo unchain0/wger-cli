@@ -129,7 +129,7 @@ Redirect (or `set -o pipefail` before any `| tee`) so the recorded exit code is 
 ## Cleanup
 
 - Kill only MCP (or other) processes your helper started. Prefer the helper exiting so the child gets EOF on stdin and leaves on its own. Never `pkill wger` or kill by process name.
-- Remove scratch JSON bodies under `/tmp/wger-verify-*` that you created for `--data @file`.
+- Set `WGER_VERIFY_SCRATCH` to a unique dir under `/tmp/wger-verify-scratch-*` when a drive needs `--data @file` bodies. Cleanup removes only that exact path.
 - If a token-gated run created API objects, delete them with `wger delete <resource> <id> --yes` and confirm with `wger get` expecting an error.
 - Do **not** delete `.verify-evidence/` or `/tmp/verify-wger-cli-evidence/`.
 - Unset scratch env vars you exported (`WGER_BIN` may stay for the session).
