@@ -1,76 +1,151 @@
-# verify-wger-cli Skill
+---
+name: verify-wger-cli
+description: >-
+  Launch and drive the wger CLI binary and MCP stdio server the way a user does,
+  and capture proof. Use when a change touches wger list/get/create/update/delete,
+  routine views, workout logs, exercise translations, resources, --json output,
+  Token auth, or `wger mcp` tools/list and tools/call.
+---
 
-## Purpose
-Verification skill for the wger-cli project. Demonstrates how to prove the CLI and MCP server work correctly, including read-only checks, token-gated write checks with cleanup, and MCP protocol compliance.
+# Verify wger-cli
 
-## How to Prove It Works
+Primary surfaces:
 
-### 1. Run the full test suite
+- The `wger` CLI (`--json` for compact machine output).
+- The MCP server over stdio (`wger mcp`).
+
+Both talk to the wger REST API v2 (`https://wger.de/api/v2/` by default, override with `WGER_BASE_URL`). Auth is `WGER_API_TOKEN` sent as `Authorization: Token <t>`. Public catalog reads (exercise, exerciseinfo, muscle, language, equipment, exercisecategory, exercise-translation) work without a token. User data (routine, workoutlog, workoutsession, day/slot configs) and all writes need a token.
+
+There is no long-lived local server for the CLI. Each drive is one process. The MCP server is short-lived and bound to the helper that spawned it. Two verification runs can share the public API; they must not share write side effects. Never drive writes against a live account without a disposable token and a cleanup plan.
+
+## Launch
+
+From the repo root:
+
 ```bash
-cargo test
+cargo build --release
+export WGER_BIN="$PWD/target/release/wger"
+"$WGER_BIN" --version
 ```
-All 12 tests should pass. These tests use `mockito` to spin up a fake wger API server, so no real HTTP requests to wger.de are made.
 
-### 2. Read-only live checks (no token required)
-The wger API allows reading public data without authentication. To verify this works:
+Ready means the binary prints `wger 0.1.0` (or the version in `Cargo.toml`) and exits 0. Put `WGER_BIN` on `PATH` as `wger` if a recipe assumes the bare name:
+
 ```bash
-# Search for exercises (public endpoint, no token needed)
-wger list exercise -q muscle=biceps
+export PATH="$(dirname "$WGER_BIN"):$PATH"
 ```
-This should succeed and return exercise data even without `WGER_API_TOKEN` set.
 
-### 3. Token-gated write checks (with cleanup)
-Write operations require `WGER_API_TOKEN`. To test safely:
+Do not install into a shared prefix during verification. Prefer `$WGER_BIN` or `target/release/wger` from this checkout.
+
+Teardown for Launch is a no-op beyond optional `cargo clean` (not required). MCP processes are owned by the helper that started them.
+
+## Doctor
+
+Run before the first drive and after any failed drive:
+
 ```bash
-# Set a throwaway token for testing
-export WGER_API_TOKEN="test-token-123"
-
-# Perform a write operation (e.g., create a routine view read)
-# Then clean up any created resources
-
-# Example: list routines to verify token works
-wger list routine
-
-# Cleanup: if any test entries were created, remove them
-# (In practice, the tests use mockito so no real API calls are made)
+bash .cursor/skills/verify-wger-cli/scripts/doctor.sh
 ```
 
-### 4. MCP tools/list smoke test
-The MCP server should respond to the `tools/list` command with the expected 7 tools:
-```python
-# Pseudo-code for MCP client
-from some_mcp_client import connect_to_stdio
-response = send_mcp_message({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
-# Expected: {"jsonrpc": "2.0", "id": 1, "result": {"tools": [...7 tools...]}}
+Read-only. Passes only when all of these hold:
+
+- `$WGER_BIN` (or `target/release/wger`, then `wger` on `PATH`) exists and is executable.
+- `"$WGER_BIN" --version` matches `wger <semver>`.
+- `"$WGER_BIN" --json resources` is a JSON array that includes `exercise`, `exerciseinfo`, `workoutlog`, `routine`, and `exercise-translation`.
+- A live public read works without a token: `"$WGER_BIN" --json list language -q limit=1` exits 0 and stdout has `"results"`.
+- A write without a token fails fast: `"$WGER_BIN" create day --data '{}'` exits non-zero and stderr contains `WGER_API_TOKEN` (the token value is never printed).
+
+Passing doctor prints `doctor: ok bin=<path> version=<ver>`. Do not drive an instance that fails doctor. Do not invent flags; if a recipe command is missing from `"$WGER_BIN" <cmd> --help`, fix the recipe.
+
+Optional unit gate (not a live proof): `cargo test` (12 tests, mockito, no live HTTP).
+
+## Drive
+
+Drive the real binary the way a user would. Prefer `--json` for stable assertions. Every flag and subcommand must exist in `"$WGER_BIN" --help` / subcommand `--help`.
+
+Stable command shapes (from clap):
+
+| User intent | Command |
+| --- | --- |
+| List public exercises | `wger --json list exerciseinfo -q limit=2` |
+| Filter by muscle id | `wger --json list exerciseinfo -q muscles=1 -q limit=5` |
+| Get one exercise | `wger --json get exerciseinfo 91` |
+| List resources | `wger --json resources` |
+| List languages | `wger --json list language -q short_name=pt` |
+| Workout logs | `wger --json logs --routine N --since YYYY-MM-DD` (token) |
+| Routine structure | `wger --json routine <id> structure` (token) |
+| Create object | `wger --json create <resource> --data '<json>'` or `--data @file.json` (token) |
+| Patch object | `wger --json update <resource> <id> --data '<json>'` (token) |
+| Delete object | `wger delete <resource> <id> --yes` (token; refuses without `--yes`) |
+| Translation write | `wger --json translation --exercise N --lang pt --name '…' --description '<p>…</p>'` (token) |
+| MCP stdio | `wger mcp` |
+
+Query flags are repeated `-q key=value` (short for `--query`). Pagination: `--all` on `list` and `logs` follows `next` up to 50 pages and returns `count`, `total`, `truncated`, `next`.
+
+Harness for MCP:
+
+```bash
+bash .cursor/skills/verify-wger-cli/scripts/mcp-smoke.sh
 ```
 
-The 7 MCP tools are:
-- `wger_list` - List a wger resource
-- `wger_get` - Get one object by id
-- `wger_create` - Create an object (POST)
-- `wger_update` - Partially update an object (PATCH)
-- `wger_delete` - Delete an object (requires confirm=true)
-- `wger_routine_view` - Routine read views
-- `wger_translation_set` - Create/update exercise translation
+That script spawns `"$WGER_BIN" mcp`, sends newline-delimited JSON-RPC `initialize`, `notifications/initialized`, and `tools/list`, then asserts the seven tool names. Do not hand-wave MCP with pseudo-code.
 
-### 5. Auth header verification
-Verify the authorization header is correctly formatted as `Token <t>`:
-- The client sets `Authorization: Token <t>` header
-- The token is never logged or exposed in error messages
-- Error messages include the API status code but strip the token
+Feature recipes live under `features/`. Drive at least the feature your change touches. A one-feature proof does not cover the rest of the map.
 
-### 6. Pagination verification
-The `list` command with `--all` flag follows `next` links up to 50 pages. Verify:
-- Without `--all`, only the first page is returned
-- With `--all`, all pages are followed and results are aggregated
-- The output includes `count` (total results), `total` (from API), `truncated` flag, and `next` continuation URL
+**Token policy.** Without `WGER_API_TOKEN`, only public GETs and the no-token write fail-fast path. Never attempt live writes without a token. With a token, every mutation uses a throwaway object and deletes it before the run ends. Never print, log, or commit the token value.
 
-### 7. Error handling verification
-- API errors surface the status code without exposing the token
-- Non-GET requests without `WGER_API_TOKEN` produce: "WGER_API_TOKEN is not set; write operations need a wger API token"
-- Invalid resources are rejected with: "unknown resource '{resource}'. Allowed: ..."
-- Invalid IDs are rejected with: "invalid id '{id}'"
+## Evidence
 
-## Files Touched
-- `.cursor/skills/verify-wger-cli/SKILL.md` - This file
-- Tests in `tests/api.rs` - All 12 tests use mockito fake server
+Write proof under `.verify-evidence/<timestamp>/` at the repo root (gitignored). Alternative: `/tmp/verify-wger-cli-evidence/<timestamp>/`. Cleanup must not delete either tree.
+
+Capture for each drive:
+
+- The exact command (token redacted if present in the env dump).
+- stdout and stderr (full for small payloads; head + `wc -c` for large lists).
+- Exit code.
+- For MCP: the raw JSON-RPC replies and the asserted tool name list.
+
+Standards:
+
+- Exercise the real user path (`wger …` or `wger mcp` stdio). Do not call `wger_cli::Client` from a one-off Rust snippet and call that a CLI proof.
+- Capture the action and the resulting state (for writes: create response id, then get/list, then delete, then get 404).
+- Mocks (`cargo test` / mockito) prove unit behavior only. Live proof hits `WGER_BASE_URL` (default `https://wger.de`).
+- Mark token-gated journeys that were not run as `token-gated - not run` with the exact procedure for when a token exists.
+
+Minimal first proof this skill expects:
+
+```bash
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+EV=.verify-evidence/$TS
+mkdir -p "$EV"
+bash .cursor/skills/verify-wger-cli/scripts/doctor.sh | tee "$EV/doctor.txt"
+"$WGER_BIN" --json list exerciseinfo -q muscles=1 -q limit=2 | tee "$EV/exercises-read.json"
+echo exit:$? | tee "$EV/exercises-read.exit"
+bash .cursor/skills/verify-wger-cli/scripts/mcp-smoke.sh | tee "$EV/mcp-smoke.txt"
+```
+
+## Cleanup
+
+- Kill only MCP (or other) processes your helper started. Prefer the helper exiting so the child gets EOF on stdin and leaves on its own. Never `pkill wger` or kill by process name.
+- Remove scratch JSON bodies under `/tmp/wger-verify-*` that you created for `--data @file`.
+- If a token-gated run created API objects, delete them with `wger delete <resource> <id> --yes` and confirm with `wger get` expecting an error.
+- Do **not** delete `.verify-evidence/` or `/tmp/verify-wger-cli-evidence/`.
+- Unset scratch env vars you exported (`WGER_BIN` may stay for the session).
+
+```bash
+bash .cursor/skills/verify-wger-cli/scripts/cleanup.sh
+```
+
+## Helpers
+
+| Script | Invocation |
+| --- | --- |
+| `scripts/lib.sh` | Sourced by the other helpers. Do not run it alone. |
+| `scripts/doctor.sh` | `bash .cursor/skills/verify-wger-cli/scripts/doctor.sh` |
+| `scripts/mcp-smoke.sh` | `bash .cursor/skills/verify-wger-cli/scripts/mcp-smoke.sh` |
+| `scripts/cleanup.sh` | `bash .cursor/skills/verify-wger-cli/scripts/cleanup.sh` |
+
+Helpers resolve the binary via `WGER_BIN`, else `$REPO_ROOT/target/release/wger`, else `wger` on `PATH`. They never echo secret values.
+
+## Feature map
+
+See [`features/README.md`](features/README.md). Keep the map honest with `/maintain-verification-skill` when commands or resources change.
