@@ -1,0 +1,26 @@
+[package]
+name = "wger-cli"
+version = "0.1.0"
+edition = "2021"
+description = "CLI and MCP stdio server for the wger REST API"
+license = "MIT"
+
+[[bin]]
+name = "wger"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+serde_json = "1"
+ureq = { version = "2", features = ["json"] }
+
+[dev-dependencies]
+mockito = "1"
+
+[profile.release]
+strip = true
+lto = true
