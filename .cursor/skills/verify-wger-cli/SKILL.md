@@ -114,14 +114,17 @@ Standards:
 Minimal first proof this skill expects:
 
 ```bash
+set -o pipefail
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 EV=.verify-evidence/$TS
 mkdir -p "$EV"
 bash .cursor/skills/verify-wger-cli/scripts/doctor.sh | tee "$EV/doctor.txt"
-"$WGER_BIN" --json list exerciseinfo -q muscles=1 -q limit=2 | tee "$EV/exercises-read.json"
+"$WGER_BIN" --json list exerciseinfo -q muscles=1 -q limit=2 >"$EV/exercises-read.json"
 echo exit:$? | tee "$EV/exercises-read.exit"
 bash .cursor/skills/verify-wger-cli/scripts/mcp-smoke.sh | tee "$EV/mcp-smoke.txt"
 ```
+
+Redirect (or `set -o pipefail` before any `| tee`) so the recorded exit code is the CLI's, not `tee`'s.
 
 ## Cleanup
 

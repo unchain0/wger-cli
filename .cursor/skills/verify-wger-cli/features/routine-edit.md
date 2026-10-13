@@ -29,15 +29,15 @@ Preconditions:
 When a disposable token exists (never print it):
 
 1. Export `WGER_API_TOKEN` from a local secret source into the environment only.
-2. **List routines.** `"$WGER_BIN" --json list routine -q limit=5"`. Exit `0`.
-3. **Read structure.** Pick an id the account owns (or create one in step 4 first). `"$WGER_BIN" --json routine <id> structure"`. Exit `0`. JSON describes days/slots.
+2. **List routines.** `"$WGER_BIN" --json list routine -q limit=5`. Exit `0`.
+3. **Read structure.** Pick an id the account owns (or create one in step 4 first). `"$WGER_BIN" --json routine <id> structure`. Exit `0`. JSON describes days/slots.
 4. **Throwaway create.** Write a scratch body, for example `/tmp/wger-verify-scratch/routine.json`:
    - Prefer creating under an existing disposable routine if the account already has one for verification.
-   - Example day create: `"$WGER_BIN" --json create day --data '{"routine":<id>,"order":99,"name":"verify-wger-cli-tmp"}'"`.
+   - Example day create: `"$WGER_BIN" --json create day --data '{"routine":<id>,"order":99,"name":"verify-wger-cli-tmp"}'`.
    - Note returned `id` as `DAY_ID`.
-5. **Update.** `"$WGER_BIN" --json update day $DAY_ID --data '{"name":"verify-wger-cli-tmp-2"}'"`. Exit `0`. `"$WGER_BIN" --json get day $DAY_ID"` shows the new name.
-6. **Delete.** `"$WGER_BIN" delete day $DAY_ID --yes"`. Exit `0`. `"$WGER_BIN" get day $DAY_ID"` exits non-zero (404 or equivalent).
-7. **Refuse without --yes.** `"$WGER_BIN" delete day $DAY_ID"` (no `--yes`) must fail even with a token.
+5. **Update.** `"$WGER_BIN" --json update day "$DAY_ID" --data '{"name":"verify-wger-cli-tmp-2"}'`. Exit `0`. `"$WGER_BIN" --json get day "$DAY_ID"` shows the new name.
+6. **Delete.** `"$WGER_BIN" delete day "$DAY_ID" --yes`. Exit `0`. `"$WGER_BIN" get day "$DAY_ID"` exits non-zero (404 or equivalent).
+7. **Refuse without --yes.** `"$WGER_BIN" delete day "$DAY_ID"` (no `--yes`) must fail even with a token.
 8. **If you created a whole routine** only for verification, delete it and its children in reverse dependency order (configs → slot-entry → slot → day → routine) before the run ends.
 9. **Proof.** Save each command's stdout/stderr/exit under `.verify-evidence/<ts>/routine-edit-*`. Redact tokens.
 

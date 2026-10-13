@@ -24,8 +24,8 @@ Preconditions:
 
 ### Public read (run without token)
 
-- **Language by code.** `"$WGER_BIN" --json list language -q short_name=pt"`. Exit `0`. `results[0].short_name` is `pt` and `id` is numeric (7 on wger.de).
-- **List translations.** `"$WGER_BIN" --json list exercise-translation -q limit=1"`. Exit `0`. `results` length 1; object has `exercise`, `language`, `name` or `description` fields as returned by the API.
+- **Language by code.** `"$WGER_BIN" --json list language -q short_name=pt`. Exit `0`. `results[0].short_name` is `pt` and `id` is numeric (7 on wger.de).
+- **List translations.** `"$WGER_BIN" --json list exercise-translation -q limit=1`. Exit `0`. `results` length 1; object has `exercise`, `language`, `name` or `description` fields as returned by the API.
 - **Proof.** Save under `.verify-evidence/<ts>/translations-read.*`.
 
 ### token-gated - not run (writes; no token in this environment)
@@ -37,8 +37,8 @@ When a disposable token exists (never print it):
 3. **Set translation.**  
    `"$WGER_BIN" --json translation --exercise <id> --lang pt --name "verify-tmp-$(date +%s)" --description "<p>verify-wger-cli temporary</p>" --license-author "verify-wger-cli"`.
 4. Note `action` in the JSON (`created` or `updated`) and the translation id.
-5. **Read back.** `"$WGER_BIN" --json list exercise-translation -q exercise=<id> -q language=<lang_id>"` and confirm the name/description.
-6. **Cleanup.** If `action` was `created`, `"$WGER_BIN" delete exercise-translation <translation_id> --yes"`. If `updated`, patch the previous name/description back with another `translation` call or `update exercise-translation`. Confirm with list/get.
+5. **Read back.** `"$WGER_BIN" --json list exercise-translation -q exercise=<id> -q language=<lang_id>` and confirm the name/description.
+6. **Cleanup.** If `action` was `created`, `"$WGER_BIN" delete exercise-translation <translation_id> --yes`. If `updated`, patch the previous name/description back with another `translation` call or `update exercise-translation`. Confirm with list/get.
 7. **Proof.** Save commands and redacted output under `.verify-evidence/<ts>/translations-write.*`.
 
 Without a token, for the write path record:

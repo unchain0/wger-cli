@@ -29,7 +29,7 @@ Preconditions:
   - `wger_delete`
   - `wger_routine_view`
   - `wger_translation_set`
-- **Manual stdio (optional).** Spawn `"$WGER_BIN" mcp"`. Write one JSON object per line:
+- **Manual stdio (optional).** Spawn `"$WGER_BIN" mcp`. Write one JSON object per line:
   1. `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"verify","version":"0"}}}`
   2. `{"jsonrpc":"2.0","method":"notifications/initialized"}` (no reply)
   3. `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`
