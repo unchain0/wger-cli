@@ -5,15 +5,9 @@ on:
     branches: [main]
 jobs:
   test:
-    runs-on: [self-hosted, linux, x64, unchain0-ci]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Rust toolchain
-        run: |
-          if ! command -v cargo >/dev/null; then
-            curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal -c clippy,rustfmt
-            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-          fi
       - run: rustup default stable && rustup component add clippy rustfmt
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
