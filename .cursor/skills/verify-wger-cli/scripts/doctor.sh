@@ -31,8 +31,8 @@ PY
 
 # Public live read without credentials; doctor fails closed if the network/API is down.
 LANG_OUT="$(env -u WGER_API_TOKEN "$BIN" --json list language -q limit=1 2>&1)" || fail "public list language failed: $LANG_OUT"
-echo "$LANG_OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert "results" in d and isinstance(d["results"], list)' \
-  || fail "language list shape unexpected"
+python3 -c 'import json,sys; d=json.load(sys.stdin); exit(0 if ("results" in d and isinstance(d["results"], list)) else 1)' \
+  < <(echo "$LANG_OUT") || fail "language list shape unexpected"
 
 # Write without token must fail fast. Clear token for this check only.
 set +e

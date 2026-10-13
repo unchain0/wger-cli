@@ -118,8 +118,7 @@ set -euo pipefail
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 EV=.verify-evidence/$TS
 mkdir -p "$EV"
-bash .cursor/skills/verify-wger-cli/scripts/doctor.sh | tee "$EV/doctor.txt"
-DOCTOR_EC=${PIPESTATUS[0]}
+bash .cursor/skills/verify-wger-cli/scripts/doctor.sh >"$EV/doctor.txt"; DOCTOR_EC=$?; echo "$DOCTOR_EC" | tee -a "$EV/doctor.exit"
 # Fail-fast: do not drive if doctor fails.
 if [[ "$DOCTOR_EC" -ne 0 ]]; then echo "doctor failed (exit $DOCTOR_EC), stopping proof" >&2; exit "$DOCTOR_EC"; fi
 
@@ -128,8 +127,7 @@ EX_EC=$?
 echo "exit:$EX_EC" | tee "$EV/exercises-read.exit"
 if [[ "$EX_EC" -ne 0 ]]; then echo "exercise read failed (exit $EX_EC), stopping proof" >&2; exit "$EX_EC"; fi
 
-bash .cursor/skills/verify-wger-cli/scripts/mcp-smoke.sh | tee "$EV/mcp-smoke.txt"
-MCP_EC=${PIPESTATUS[0]}
+bash .cursor/skills/verify-wger-cli/scripts/mcp-smoke.sh >"$EV/mcp-smoke.txt"; MCP_EC=$?; echo "$MCP_EC" | tee -a "$EV/mcp-smoke.exit"
 if [[ "$MCP_EC" -ne 0 ]]; then echo "mcp smoke failed (exit $MCP_EC), stopping proof" >&2; exit "$MCP_EC"; fi
 ```
 
