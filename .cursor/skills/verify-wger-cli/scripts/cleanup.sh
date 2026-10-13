@@ -10,10 +10,20 @@ removed=0
 if [[ -n "${WGER_VERIFY_SCRATCH:-}" ]]; then
   case "$WGER_VERIFY_SCRATCH" in
     /tmp/wger-verify-scratch/*|/tmp/wger-verify-scratch-*)
-      if [[ -e "$WGER_VERIFY_SCRATCH" ]]; then
-        rm -rf -- "$WGER_VERIFY_SCRATCH"
-        removed=1
-      fi
+      # Canonicalize to reject traversal (e.g. /tmp/wger-verify-scratch/../unrelated)
+      CANON="$(realpath -m "$WGER_VERIFY_SCRATCH" 2>/dev/null || echo "$WGER_VERIFY_SCRATCH")"
+      case "$CANON" in
+        /tmp/wger-verify-scratch/*|/tmp/wger-verify-scratch-*)
+          if [[ -e "$CANON" ]]; then
+            rm -rf -- "$CANON"
+            removed=1
+          fi
+          ;;
+        *)
+          echo "cleanup: refusing non-child scratch after canonicalization: $CANON" >&2
+          exit 1
+          ;;
+      esac
       ;;
     *)
       echo "cleanup: refusing WGER_VERIFY_SCRATCH outside /tmp/wger-verify-scratch*: $WGER_VERIFY_SCRATCH" >&2
