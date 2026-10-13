@@ -136,7 +136,7 @@ impl Client {
         let mut results: Vec<Value> = first["results"].as_array().cloned().unwrap_or_default();
         let mut next = first["next"].as_str().map(String::from);
         let mut pages = 1;
-        while let Some(n) = next {
+        while let Some(n) = next.clone() {
             if pages >= 50 {
                 break;
             }
@@ -145,7 +145,11 @@ impl Client {
             next = page["next"].as_str().map(String::from);
             pages += 1;
         }
-        Ok(json!({"count": results.len(), "results": results}))
+        // Never return a silently truncated result: flag it and hand back the continuation URL.
+        let truncated = next.is_some();
+        Ok(
+            json!({"count": results.len(), "total": first["count"], "results": results, "truncated": truncated, "next": next}),
+        )
     }
 
     pub fn get(&self, resource: &str, id: &str) -> Result<Value> {

@@ -33,6 +33,7 @@ fn list_all_follows_next() {
         .create();
     let v = Client::new(&s.url(), None).list("day", &[], true).unwrap();
     assert_eq!(v["count"], 2);
+    assert_eq!(v["truncated"], false);
 }
 
 #[test]
