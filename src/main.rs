@@ -29,7 +29,7 @@ enum Cmd {
         all: bool,
     },
     /// Get one object by id
-    Get { resource: String, id: u64 },
+    Get { resource: String, id: String },
     /// Create an object (POST) from a JSON body
     Create {
         resource: String,
@@ -39,14 +39,14 @@ enum Cmd {
     /// Partially update an object (PATCH) with a JSON body
     Update {
         resource: String,
-        id: u64,
+        id: String,
         #[arg(long)]
         data: String,
     },
     /// Delete an object (requires --yes)
     Delete {
         resource: String,
-        id: u64,
+        id: String,
         #[arg(long)]
         yes: bool,
     },
@@ -125,10 +125,10 @@ fn run(c: &Client, cmd: Cmd) -> Result<Option<Value>> {
             query,
             all,
         } => c.list(&resource, &parse_query(&query)?, all)?,
-        Cmd::Get { resource, id } => c.get(&resource, id)?,
+        Cmd::Get { resource, id } => c.get(&resource, &id)?,
         Cmd::Create { resource, data } => c.create(&resource, &parse_data(&data)?)?,
-        Cmd::Update { resource, id, data } => c.update(&resource, id, &parse_data(&data)?)?,
-        Cmd::Delete { resource, id, yes } => c.delete(&resource, id, yes)?,
+        Cmd::Update { resource, id, data } => c.update(&resource, &id, &parse_data(&data)?)?,
+        Cmd::Delete { resource, id, yes } => c.delete(&resource, &id, yes)?,
         Cmd::Routine { id, view } => c.routine_view(id, &view)?,
         Cmd::Logs {
             routine,

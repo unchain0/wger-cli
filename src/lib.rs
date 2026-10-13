@@ -37,6 +37,16 @@ pub struct Client {
     agent: ureq::Agent,
 }
 
+/// Ids are integers for most resources and UUIDs for workoutlog/workoutsession.
+pub fn check_id(id: &str) -> Result<()> {
+    if !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+    {
+        Ok(())
+    } else {
+        bail!("invalid id '{id}'")
+    }
+}
+
 fn check_resource(r: &str) -> Result<()> {
     if RESOURCES.contains(&r) {
         Ok(())
@@ -138,8 +148,9 @@ impl Client {
         Ok(json!({"count": results.len(), "results": results}))
     }
 
-    pub fn get(&self, resource: &str, id: u64) -> Result<Value> {
+    pub fn get(&self, resource: &str, id: &str) -> Result<Value> {
         check_resource(resource)?;
+        check_id(id)?;
         self.send("GET", &format!("{resource}/{id}/"), &[], None)
     }
 
@@ -148,13 +159,15 @@ impl Client {
         self.send("POST", &format!("{resource}/"), &[], Some(data))
     }
 
-    pub fn update(&self, resource: &str, id: u64, data: &Value) -> Result<Value> {
+    pub fn update(&self, resource: &str, id: &str, data: &Value) -> Result<Value> {
         check_resource(resource)?;
+        check_id(id)?;
         self.send("PATCH", &format!("{resource}/{id}/"), &[], Some(data))
     }
 
-    pub fn delete(&self, resource: &str, id: u64, confirmed: bool) -> Result<Value> {
+    pub fn delete(&self, resource: &str, id: &str, confirmed: bool) -> Result<Value> {
         check_resource(resource)?;
+        check_id(id)?;
         if !confirmed {
             bail!("refusing to delete {resource}/{id} without confirmation (--yes / confirm=true)");
         }
@@ -220,11 +233,17 @@ impl Client {
         if let Some(a) = author {
             data.insert("license_author".into(), json!(a));
         }
-        if let Some(id) = existing["results"]
+        // The API may ignore the language filter, so match the language explicitly.
+        let found = existing["results"]
             .as_array()
-            .and_then(|a| a.first())
-            .and_then(|t| t["id"].as_u64())
-        {
+            .and_then(|a| {
+                a.iter().find(|t| {
+                    t["language"].as_u64() == Some(lang_id)
+                        && t["exercise"].as_u64() == Some(exercise)
+                })
+            })
+            .and_then(|t| t["id"].as_u64());
+        if let Some(id) = found {
             if data.is_empty() {
                 bail!("nothing to update: pass name and/or description");
             }

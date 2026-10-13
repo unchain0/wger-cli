@@ -37,14 +37,14 @@ fn list_all_follows_next() {
 
 #[test]
 fn unknown_resource_rejected() {
-    assert!(Client::new("http://x", None).get("user", 1).is_err());
+    assert!(Client::new("http://x", None).get("user", "1").is_err());
 }
 
 #[test]
 fn writes_require_token() {
     let c = Client::new("http://127.0.0.1:9", None);
     let e = c
-        .update("day", 1, &json!({"name": "A"}))
+        .update("day", "1", &json!({"name": "A"}))
         .unwrap_err()
         .to_string();
     assert!(e.contains("WGER_API_TOKEN"));
@@ -58,7 +58,7 @@ fn delete_requires_confirmation() {
         .with_status(204)
         .create();
     let c = Client::new(&s.url(), Some("t".into()));
-    assert!(c.delete("slot", 5, false).is_err());
+    assert!(c.delete("slot", "5", false).is_err());
     m.expect(0);
     let mut s2 = Server::new();
     let m2 = s2
@@ -66,7 +66,7 @@ fn delete_requires_confirmation() {
         .with_status(204)
         .create();
     let c2 = Client::new(&s2.url(), Some("t".into()));
-    assert_eq!(c2.delete("slot", 5, true).unwrap()["ok"], true);
+    assert_eq!(c2.delete("slot", "5", true).unwrap()["ok"], true);
     m2.assert();
 }
 
@@ -80,7 +80,8 @@ fn patch_sends_body() {
         .create();
     let c = Client::new(&s.url(), Some("t".into()));
     assert_eq!(
-        c.update("slot-entry", 9, &json!({"comment": "x"})).unwrap()["id"],
+        c.update("slot-entry", "9", &json!({"comment": "x"}))
+            .unwrap()["id"],
         9
     );
     m.assert();
@@ -98,7 +99,7 @@ fn translation_updates_existing() {
             Matcher::UrlEncoded("exercise".into(), "10".into()),
             Matcher::UrlEncoded("language".into(), "7".into()),
         ]))
-        .with_body(r#"{"results":[{"id":55}]}"#)
+        .with_body(r#"{"results":[{"id":54,"exercise":10,"language":2},{"id":55,"exercise":10,"language":7}]}"#)
         .create();
     let m = s
         .mock("PATCH", "/api/v2/exercise-translation/55/")
@@ -140,7 +141,7 @@ fn api_error_surfaces_status() {
         .with_body(r#"{"detail":"Not found."}"#)
         .create();
     let e = Client::new(&s.url(), Some("t".into()))
-        .get("routine", 1)
+        .get("routine", "1")
         .unwrap_err()
         .to_string();
     assert!(e.contains("404") && !e.contains("Token t"));
@@ -160,4 +161,42 @@ fn mcp_protocol() {
     assert_eq!(tl["result"]["tools"].as_array().unwrap().len(), 7);
     let del = mcp::handle(&c, &json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"wger_delete","arguments":{"resource":"day","id":1,"confirm":false}}})).unwrap();
     assert_eq!(del["result"]["isError"], true);
+}
+
+#[test]
+fn translation_ignores_other_language_rows() {
+    let mut s = Server::new();
+    s.mock("GET", "/api/v2/exercise-translation/")
+        .match_query(Matcher::Any)
+        .with_body(r#"{"results":[{"id":54,"exercise":10,"language":2}]}"#)
+        .create();
+    let m = s
+        .mock("POST", "/api/v2/exercise-translation/")
+        .with_status(201)
+        .with_body(r#"{"id":56}"#)
+        .create();
+    let c = Client::new(&s.url(), Some("t".into()));
+    assert_eq!(
+        c.translation_set(10, "7", Some("A"), Some("<p>d</p>"), None)
+            .unwrap()["action"],
+        "created"
+    );
+    m.assert();
+}
+
+#[test]
+fn uuid_ids_accepted() {
+    let mut s = Server::new();
+    let m = s
+        .mock(
+            "GET",
+            "/api/v2/workoutlog/0b6c1c9e-1f2a-4c1e-9a3b-2d4e5f6a7b8c/",
+        )
+        .with_body(r#"{"id":"x"}"#)
+        .create();
+    let c = Client::new(&s.url(), Some("t".into()));
+    c.get("workoutlog", "0b6c1c9e-1f2a-4c1e-9a3b-2d4e5f6a7b8c")
+        .unwrap();
+    m.assert();
+    assert!(c.get("workoutlog", "../x").is_err());
 }
