@@ -1,30 +1,57 @@
 # wger-cli
 
-Single Rust binary `wger`: a CLI (`--json` for compact output) and an MCP stdio server (`wger mcp`) for the [wger](https://wger.de) REST API v2.
+A strict Rust CLI and MCP stdio server for the [wger](https://wger.de) REST API v2. Lists, creates, updates, and deletes resources; reads routine structures, workout logs, and translations. Designed for terminal-first use and agent integration over JSON-RPC stdio.
 
-## Auth
-- `WGER_API_TOKEN` — API key from wger (Settings → API key). Never logged or stored by the tool. Reads of public data (exercises, languages) work without it; writes fail fast without it.
-- `WGER_BASE_URL` — optional, default `https://wger.de`.
+[![CI](https://github.com/unchain0/wger-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/unchain0/wger-cli/actions/workflows/ci.yml)
+[![Rust](https://img.shields.io/badge/rust-1.77%2B-orange.svg)](Cargo.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Commands
+## Real output
+
+```text
+$ cargo run -- resources
+[
+  "routine", "day", "slot", "slot-entry",
+  "workoutlog", "workoutsession",
+  ...
+]
 ```
-wger resources                                   # allowed resources
-wger list <resource> [-q key=value]... [--all]   # GET list (filters per wger API)
-wger get <resource> <id>
-wger create <resource> --data '<json>'|@file.json  # POST
-wger update <resource> <id> --data '<json>'        # PATCH
-wger delete <resource> <id> --yes                  # refuses without --yes
-wger routine <id> [structure|logs|stats|date-sequence-display|date-sequence-gym]
-wger logs [--routine N] [--exercise N] [--since YYYY-MM-DD] [--all]
-wger translation --exercise N [--lang pt] [--name ..] [--description HTML | --description-file f] [--license-author ..]
-wger mcp                                          # MCP server over stdio
-```
-Resources: routine, day, slot, slot-entry, workoutlog, workoutsession, sets-config, max-sets-config, repetitions-config, max-repetitions-config, weight-config, max-weight-config, rir-config, max-rir-config, rest-config, max-rest-config, exercise, exerciseinfo, exercise-translation, language, muscle, equipment, exercisecategory.
+See `docs/assets/resources-output.txt` for the full captured output.
 
-Config objects (`*-config`) take `{"slot_entry": ID, "iteration": 1, "value": "10", "operation": "r", "step": "abs", "repeat": true}`.
+## Features
+- CLI (`--json`) + MCP stdio server (`wger mcp`)
+- List, get, create, update, delete across all wger resources
+- Routine sub-views and workout-log filters
+- Translation creation/update for exercises
+- Strict lint (clippy pedantic, warnings as errors)
 
-## MCP
-Tools: `wger_list`, `wger_get`, `wger_create`, `wger_update`, `wger_delete` (needs `confirm: true`), `wger_routine_view`, `wger_translation_set`.
-```json
-{"mcpServers":{"wger":{"command":"/home/box/.local/bin/wger","args":["mcp"],"env":{"WGER_API_TOKEN":"<token>"}}}}
+## Quick start
+```bash
+git clone https://github.com/unchain0/wger-cli.git
+cd wger-cli
+cargo build --release
+export WGER_API_TOKEN="<token>"
+./target/release/wger resources
+./target/release/wger list exercise --all
 ```
+
+## Usage / examples
+See README commands above and `docs/assets/`. Env vars: `WGER_API_TOKEN` (required for writes), `WGER_BASE_URL` (default `https://wger.de`). See `.env.example`.
+
+## Architecture
+Rust binary; `ureq` for HTTP; `serde_json` for data; `clap` for CLI; custom newline-delimited JSON-RPC over stdio for MCP.
+
+## Development
+- `cargo fmt --check`
+- `cargo clippy --all-targets -- -D warnings --enable pedantic`
+- `cargo test`
+- Coverage threshold enforced in CI; `cargo audit` for dependency audit; `gitleaks` for secret scanning.
+
+## CI / quality
+Pinned action SHAs; least-priv `permissions: contents: read`; concurrency with cancel-in-progress; required lint, type-check, test, audit, and secret-scan jobs.
+
+## Roadmap
+Keep clippy strict; add UUIDv7 for any generated IDs; CSPRNG for any randomness.
+
+## License
+MIT

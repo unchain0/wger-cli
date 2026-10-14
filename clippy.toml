@@ -1,0 +1,8 @@
+warn-on-all-wildcard-imports = true
+warn-on-all-wildcard-rustc-lint-allow = true
+warn-on-all-wildcard-allow = true
+correctness = true
+style = true
+complexity = true
+perf = true
+pedantic = true
