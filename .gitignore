@@ -1,3 +1,4 @@
 target/
 .verify-evidence/
 cobertura.xml
+.env

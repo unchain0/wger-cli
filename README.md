@@ -36,7 +36,7 @@ export WGER_API_TOKEN="<token>"
 ```
 
 ## Usage / examples
-See README commands above and `docs/assets/`. Env vars: `WGER_API_TOKEN` (required for writes), `WGER_BASE_URL` (default `https://wger.de`). See `.env.example`.
+See README commands above and `docs/assets/`. Env vars (also listed in `.env.example`): `WGER_API_TOKEN` (required for writes; create under wger account → API key), `WGER_BASE_URL` (default `https://wger.de`). Export them in your shell; the binary does not load a `.env` file.
 
 ## Architecture
 Rust binary; `ureq` for HTTP; `serde_json` for data; `clap` for CLI; custom newline-delimited JSON-RPC over stdio for MCP.
