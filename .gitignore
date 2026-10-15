@@ -1,2 +1,3 @@
 target/
 .verify-evidence/
+cobertura.xml

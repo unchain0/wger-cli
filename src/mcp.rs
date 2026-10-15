@@ -41,6 +41,11 @@ fn n(a: &Value, k: &str) -> Result<u64> {
         .ok_or_else(|| anyhow!("missing integer '{k}'"))
 }
 
+/// Dispatch one MCP tool call against the shared client.
+///
+/// # Errors
+/// Returns an error when arguments are missing/invalid, the tool name is unknown, or the
+/// underlying client request fails.
 pub fn call(c: &Client, name: &str, a: &Value) -> Result<Value> {
     match name {
         "wger_list" => {
@@ -51,9 +56,7 @@ pub fn call(c: &Client, name: &str, a: &Value) -> Result<Value> {
                         .map(|(k, v)| {
                             format!(
                                 "{k}={}",
-                                v.as_str()
-                                    .map(String::from)
-                                    .unwrap_or_else(|| v.to_string())
+                                v.as_str().map_or_else(|| v.to_string(), String::from)
                             )
                         })
                         .collect()
@@ -85,6 +88,12 @@ pub fn call(c: &Client, name: &str, a: &Value) -> Result<Value> {
     }
 }
 
+/// Handle one JSON-RPC request. Returns `None` for notifications (no `id`).
+///
+/// # Panics
+/// Panics only if serializing a successful tool result to JSON fails, which does not happen for
+/// ordinary `serde_json::Value` trees.
+#[must_use]
 pub fn handle(c: &Client, msg: &Value) -> Option<Value> {
     let id = msg.get("id").cloned()?; // notifications get no reply
     let method = msg["method"].as_str().unwrap_or("");
@@ -116,6 +125,10 @@ pub fn handle(c: &Client, msg: &Value) -> Option<Value> {
     Some(json!({"jsonrpc": "2.0", "id": id, "result": result}))
 }
 
+/// Serve MCP over stdio until stdin closes.
+///
+/// # Errors
+/// Returns an error when reading stdin or writing stdout fails.
 pub fn serve(c: &Client) -> Result<()> {
     let stdin = std::io::stdin();
     let mut out = std::io::stdout().lock();
@@ -131,7 +144,7 @@ pub fn serve(c: &Client) -> Result<()> {
             ),
         };
         if let Some(r) = reply {
-            writeln!(out, "{}", r)?;
+            writeln!(out, "{r}")?;
             out.flush()?;
         }
     }

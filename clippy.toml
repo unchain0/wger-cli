@@ -1,8 +1,4 @@
-warn-on-all-wildcard-imports = true
-warn-on-all-wildcard-rustc-lint-allow = true
-warn-on-all-wildcard-allow = true
-correctness = true
-style = true
-complexity = true
-perf = true
-pedantic = true
+# Valid Clippy lint configuration only (see rust-clippy ClippyConfiguration).
+cognitive-complexity-threshold = 15
+too-many-arguments-threshold = 7
+type-complexity-threshold = 250

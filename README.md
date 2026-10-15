@@ -43,7 +43,7 @@ Rust binary; `ureq` for HTTP; `serde_json` for data; `clap` for CLI; custom newl
 
 ## Development
 - `cargo fmt --check`
-- `cargo clippy --all-targets -- -D warnings --enable pedantic`
+- `cargo clippy --all-targets -- -D warnings -W clippy::pedantic`
 - `cargo test`
 - Coverage threshold enforced in CI; `cargo audit` for dependency audit; `gitleaks` for secret scanning.
 

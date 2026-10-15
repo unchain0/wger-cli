@@ -38,6 +38,10 @@ pub struct Client {
 }
 
 /// Ids are integers for most resources and UUIDs for workoutlog/workoutsession.
+///
+/// # Errors
+/// Returns an error when `id` is empty, longer than 64 characters, or contains
+/// characters other than ASCII alphanumerics and `-`.
 pub fn check_id(id: &str) -> Result<()> {
     if !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
     {
@@ -56,6 +60,8 @@ fn check_resource(r: &str) -> Result<()> {
 }
 
 impl Client {
+    /// Build a client for `base` with an optional API token.
+    #[must_use]
     pub fn new(base: &str, token: Option<String>) -> Self {
         let token = token.filter(|t| !t.trim().is_empty());
         Client {
@@ -68,6 +74,8 @@ impl Client {
         }
     }
 
+    /// Build a client from `WGER_BASE_URL` and `WGER_API_TOKEN`.
+    #[must_use]
     pub fn from_env() -> Self {
         let base = std::env::var("WGER_BASE_URL").unwrap_or_else(|_| "https://wger.de".into());
         Self::new(&base, std::env::var("WGER_API_TOKEN").ok())
@@ -127,6 +135,9 @@ impl Client {
     }
 
     /// List a resource. With `all`, follows `next` links (max 50 pages).
+    ///
+    /// # Errors
+    /// Returns an error when the resource name is unknown or the HTTP request fails.
     pub fn list(&self, resource: &str, query: &[(String, String)], all: bool) -> Result<Value> {
         check_resource(resource)?;
         let first = self.send("GET", &format!("{resource}/"), query, None)?;
@@ -152,23 +163,40 @@ impl Client {
         )
     }
 
+    /// Fetch one object by id.
+    ///
+    /// # Errors
+    /// Returns an error when the resource or id is invalid, or the HTTP request fails.
     pub fn get(&self, resource: &str, id: &str) -> Result<Value> {
         check_resource(resource)?;
         check_id(id)?;
         self.send("GET", &format!("{resource}/{id}/"), &[], None)
     }
 
+    /// Create an object (`POST`).
+    ///
+    /// # Errors
+    /// Returns an error when the resource is unknown, the token is missing, or the HTTP request fails.
     pub fn create(&self, resource: &str, data: &Value) -> Result<Value> {
         check_resource(resource)?;
         self.send("POST", &format!("{resource}/"), &[], Some(data))
     }
 
+    /// Partially update an object (`PATCH`).
+    ///
+    /// # Errors
+    /// Returns an error when the resource or id is invalid, the token is missing, or the HTTP request fails.
     pub fn update(&self, resource: &str, id: &str, data: &Value) -> Result<Value> {
         check_resource(resource)?;
         check_id(id)?;
         self.send("PATCH", &format!("{resource}/{id}/"), &[], Some(data))
     }
 
+    /// Delete an object. Requires `confirmed`.
+    ///
+    /// # Errors
+    /// Returns an error when confirmation is missing, the resource or id is invalid, the token is
+    /// missing, or the HTTP request fails.
     pub fn delete(&self, resource: &str, id: &str, confirmed: bool) -> Result<Value> {
         check_resource(resource)?;
         check_id(id)?;
@@ -179,6 +207,9 @@ impl Client {
     }
 
     /// Routine sub-views: structure, logs, stats, date-sequence-display.
+    ///
+    /// # Errors
+    /// Returns an error when `view` is unknown or the HTTP request fails.
     pub fn routine_view(&self, id: u64, view: &str) -> Result<Value> {
         if ![
             "structure",
@@ -195,6 +226,9 @@ impl Client {
     }
 
     /// Resolve a language code ("pt") or numeric id to the wger language id.
+    ///
+    /// # Errors
+    /// Returns an error when the language cannot be resolved or the HTTP request fails.
     pub fn language_id(&self, lang: &str) -> Result<u64> {
         if let Ok(n) = lang.parse::<u64>() {
             return Ok(n);
@@ -213,6 +247,10 @@ impl Client {
     }
 
     /// Create or update the translation of an exercise in a language.
+    ///
+    /// # Errors
+    /// Returns an error when required fields are missing for create, nothing is provided for
+    /// update, the language cannot be resolved, the token is missing, or the HTTP request fails.
     pub fn translation_set(
         &self,
         exercise: u64,
@@ -275,6 +313,10 @@ impl Client {
     }
 }
 
+/// Parse repeated `key=value` CLI query pairs.
+///
+/// # Errors
+/// Returns an error when any pair lacks a `=` separator.
 pub fn parse_query(pairs: &[String]) -> Result<Vec<(String, String)>> {
     pairs
         .iter()
