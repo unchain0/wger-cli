@@ -1,0 +1,4 @@
+# Valid Clippy lint configuration only (see rust-clippy ClippyConfiguration).
+cognitive-complexity-threshold = 15
+too-many-arguments-threshold = 7
+type-complexity-threshold = 250

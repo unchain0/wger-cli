@@ -3,10 +3,10 @@ use clap::{Parser, Subcommand};
 use serde_json::Value;
 use wger_cli::{parse_query, Client};
 
-/// CLI and MCP stdio server for the wger REST API (https://wger.de/api/v2/).
+/// CLI and MCP stdio server for the wger REST API (<https://wger.de/api/v2/>).
 ///
-/// Auth: set WGER_API_TOKEN (wger account > API key). Reads of public data work without it.
-/// WGER_BASE_URL overrides the instance (default https://wger.de).
+/// Auth: set `WGER_API_TOKEN` (wger account > API key). Reads of public data work without it.
+/// `WGER_BASE_URL` overrides the instance (default <https://wger.de>).
 #[derive(Parser)]
 #[command(name = "wger", version)]
 struct Cli {
@@ -105,9 +105,15 @@ fn main() {
     match r {
         Ok(Some(v)) => {
             if cli.json {
-                println!("{}", v)
+                println!("{v}");
             } else {
-                println!("{}", serde_json::to_string_pretty(&v).unwrap())
+                match serde_json::to_string_pretty(&v) {
+                    Ok(s) => println!("{s}"),
+                    Err(e) => {
+                        eprintln!("error: {e:#}");
+                        std::process::exit(1);
+                    }
+                }
             }
         }
         Ok(None) => {}
@@ -138,13 +144,13 @@ fn run(c: &Client, cmd: Cmd) -> Result<Option<Value>> {
         } => {
             let mut q = vec![("ordering".to_string(), "-date".to_string())];
             if let Some(r) = routine {
-                q.push(("routine".into(), r.to_string()))
+                q.push(("routine".into(), r.to_string()));
             }
             if let Some(e) = exercise {
-                q.push(("exercise".into(), e.to_string()))
+                q.push(("exercise".into(), e.to_string()));
             }
             if let Some(s) = since {
-                q.push(("date__gte".into(), s))
+                q.push(("date__gte".into(), s));
             }
             c.list("workoutlog", &q, all)?
         }
