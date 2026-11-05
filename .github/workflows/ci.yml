@@ -21,7 +21,10 @@ jobs:
         with:
           toolchain: stable
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+      - uses: kunobi-ninja/kache-action@ad7317540dcdd71c904f7a60a87b620a0c0e67ed # v1
+        with:
+          version: v2.0.0
+          pr-comment: false
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings -W clippy::pedantic
   types:
@@ -32,7 +35,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+      - uses: kunobi-ninja/kache-action@ad7317540dcdd71c904f7a60a87b620a0c0e67ed # v1
+        with:
+          version: v2.0.0
+          pr-comment: false
       - run: cargo build --all-targets
   tests:
     runs-on: ubuntu-latest
@@ -43,7 +49,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+      - uses: kunobi-ninja/kache-action@ad7317540dcdd71c904f7a60a87b620a0c0e67ed # v1
+        with:
+          version: v2.0.0
+          pr-comment: false
       - run: cargo test
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin --locked --version 0.37.5
@@ -56,7 +65,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+      - uses: kunobi-ninja/kache-action@ad7317540dcdd71c904f7a60a87b620a0c0e67ed # v1
+        with:
+          version: v2.0.0
+          pr-comment: false
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked --version 0.22.2
       - run: cargo audit
